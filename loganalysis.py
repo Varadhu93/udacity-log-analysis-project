@@ -70,7 +70,7 @@ def mostErrorsDay():
     db = psycopg2.connect(database=DBNAME)
     cur = db.cursor()
     query_requestsPerDay = """
-                            CREATE VIEW requests_per_day AS
+                            CREATE OR REPLACE VIEW requests_per_day AS
                             SELECT COUNT(*)::numeric as num, time::date as day
                             FROM log
                             GROUP BY day
@@ -78,7 +78,7 @@ def mostErrorsDay():
                         """
     cur.execute(query_requestsPerDay)
     query_errorsPerDay = """
-                            CREATE VIEW errors_per_day AS
+                            CREATE OR REPLACE VIEW errors_per_day AS
                             SELECT COUNT(*)::numeric as num, time::date as day
                             FROM log
                             WHERE status !='200 OK'
@@ -87,9 +87,10 @@ def mostErrorsDay():
                         """
     cur.execute(query_errorsPerDay)
     query_errorPercentage = """
-                                CREATE VIEW day_with_most_error AS(
+                                CREATE OR REPLACE VIEW day_with_most_error AS(
                                     SELECT * FROM(
-                                    SELECT requests_per_day.day,
+                                    SELECT TO_CHAR
+                                    (requests_per_day.day,'Mon DD, YYYY'),
                                     (errors_per_day.num::float/requests_per_day.num::float)*100
                                     AS error_percentage
                                     FROM requests_per_day, errors_per_day
@@ -102,9 +103,8 @@ def mostErrorsDay():
     cur.execute(query_results)
     results = cur.fetchall()
     for row in results:
-        dateFormat = row[0].strftime('%B %d, %Y')
         errorRoundOff = round(row[1], 1)
-        print("%s --- %s%% errors" % (dateFormat, errorRoundOff))
+        print("%s --- %s%% errors" % (row[0], errorRoundOff))
     db.close()
     return results
 

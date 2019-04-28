@@ -18,7 +18,7 @@ To write SQL queries to answer the following questions about a PostgreSQL databa
 * [Python3](https://www.python.org/)
 * [vagrant](https://www.vagrantup.com/)
 * [VirtualBox](https://www.virtualbox.org/)
-*   PostgreSQL
+* PostgreSQL
 
 >### Application contents
 
@@ -47,6 +47,9 @@ Once inside the VM, navigate to the tournament directory with this command:
 `cd /vagrant`
 
 >### Load the data into database
+
+To setup the database you will need to download the data:
+* [Download data from here](https://d17h27t6h515a5.cloudfront.net/topher/2016/August/57b5f748_newsdata/newsdata.zip)
 
 First, unzip the zip file with the command:
 `unzip newsdata.zip`
