@@ -5,21 +5,22 @@ loganalysis.py - Implementation of the log analysis project
 import psycopg2
 from datetime import datetime
 
-DBNAME="news"
+DBNAME = "news"
+
 
 def mostPopularArticles():
     '''
-    Returns the three most popular articles 
+    Returns the three most popular articles
     '''
     db = psycopg2.connect(database=DBNAME)
     cur = db.cursor()
     query = """SELECT title, slug, views
-               FROM articles 
+               FROM articles
                INNER JOIN(
                    SELECT path, count(path) as views
                    FROM log
-                   GROUP BY log.path 
-               ) as log 
+                   GROUP BY log.path
+               ) as log
                ON log.path = '/article/' || articles.slug
                ORDER BY views desc
                LIMIT 3
@@ -27,9 +28,10 @@ def mostPopularArticles():
     cur.execute(query)
     popularArticles = cur.fetchall()
     for row in popularArticles:
-        print("%s -- %s views"%(row[0],str(row[2])))
+        print("%s -- %s views" % (row[0], str(row[2])))
     db.close()
     return popularArticles
+
 
 def mostPopularAuthor():
     '''
@@ -37,8 +39,9 @@ def mostPopularAuthor():
     '''
     db = psycopg2.connect(database=DBNAME)
     cur = db.cursor()
-    query = """SELECT name, views 
-               FROM authors 
+    query = """
+               SELECT name, views
+               FROM authors
                JOIN(
                    SELECT sub.author, views
                    FROM(
@@ -50,14 +53,15 @@ def mostPopularAuthor():
                        ORDER BY views DESC
                        )sub
                     )sub2
-                ON sub2.author = authors.id     
+                ON sub2.author = authors.id
             """
     cur.execute(query)
     popularAuthors = cur.fetchall()
     for row in popularAuthors:
-        print("%s -- %s views"%(row[0],str(row[1])))
+        print("%s -- %s views" % (row[0], str(row[1])))
     db.close()
     return popularAuthors
+
 
 def mostErrorsDay():
     '''
@@ -70,7 +74,7 @@ def mostErrorsDay():
                             SELECT COUNT(*)::numeric as num, time::date as day
                             FROM log
                             GROUP BY day
-                            ORDER BY day DESC;   
+                            ORDER BY day DESC;
                         """
     cur.execute(query_requestsPerDay)
     query_errorsPerDay = """
@@ -85,10 +89,12 @@ def mostErrorsDay():
     query_errorPercentage = """
                                 CREATE VIEW day_with_most_error AS(
                                     SELECT * FROM(
-                                    SELECT requests_per_day.day, (errors_per_day.num::float / requests_per_day.num::float)*100
+                                    SELECT requests_per_day.day,
+                                    (errors_per_day.num::float/requests_per_day.num::float)*100
                                     AS error_percentage
                                     FROM requests_per_day, errors_per_day
-                                    WHERE requests_per_day.day=errors_per_day.day)
+                                    WHERE
+                                    requests_per_day.day=errors_per_day.day)
                                     AS result WHERE error_percentage > 1);
                             """
     cur.execute(query_errorPercentage)
@@ -96,10 +102,11 @@ def mostErrorsDay():
     cur.execute(query_results)
     results = cur.fetchall()
     for row in results:
-        print("%s --- %s%% errors"%(row[0].strftime('%B %d, %Y'),round(row[1],1)))
+        dateFormat = row[0].strftime('%B %d, %Y')
+        errorRoundOff = round(row[1], 1)
+        print("%s --- %s%% errors" % (dateFormat, errorRoundOff))
     db.close()
-    return results                        
-
+    return results
 
 
 if __name__ == '__main__':
