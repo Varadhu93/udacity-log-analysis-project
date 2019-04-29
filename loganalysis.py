@@ -12,23 +12,26 @@ def mostPopularArticles():
     '''
     Returns the three most popular articles
     '''
-    db = psycopg2.connect(database=DBNAME)
+    try:
+        db = psycopg2.connect(database=DBNAME)
+    except psycopg2.OperationalError as e:
+        print("unable to connect error: %s " % e)
     cur = db.cursor()
     query = """SELECT title, slug, views
-               FROM articles
-               INNER JOIN(
-                   SELECT path, count(path) as views
-                   FROM log
-                   GROUP BY log.path
-               ) as log
-               ON log.path = '/article/' || articles.slug
-               ORDER BY views desc
-               LIMIT 3
-               """
+            FROM articles
+            INNER JOIN(
+                SELECT path, count(path) as views
+                FROM log
+                GROUP BY log.path
+            ) as log
+            ON log.path = '/article/' || articles.slug
+            ORDER BY views desc
+            LIMIT 3
+            """
     cur.execute(query)
     popularArticles = cur.fetchall()
     for row in popularArticles:
-        print("%s -- %s views" % (row[0], str(row[2])))
+        print("{} -- {} views".format(row[0], str(row[2])))
     db.close()
     return popularArticles
 
@@ -37,28 +40,31 @@ def mostPopularAuthor():
     '''
     Returns the most popular authors of all time
     '''
-    db = psycopg2.connect(database=DBNAME)
+    try:
+        db = psycopg2.connect(database=DBNAME)
+    except psycopg2.OperationalError as e:
+        print("unable to connect error: %s " % e)
     cur = db.cursor()
     query = """
-               SELECT name, views
-               FROM authors
-               JOIN(
-                   SELECT sub.author, views
-                   FROM(
-                       SELECT author, count(*) as views
-                       FROM articles
-                       JOIN log
-                       ON log.path = '/article/' || articles.slug
-                       GROUP BY author
-                       ORDER BY views DESC
-                       )sub
+            SELECT name, views
+            FROM authors
+            JOIN(
+                SELECT sub.author, views
+                FROM(
+                    SELECT author, count(*) as views
+                    FROM articles
+                    JOIN log
+                    ON log.path = '/article/' || articles.slug
+                    GROUP BY author
+                    ORDER BY views DESC
+                    )sub
                     )sub2
                 ON sub2.author = authors.id
             """
     cur.execute(query)
     popularAuthors = cur.fetchall()
     for row in popularAuthors:
-        print("%s -- %s views" % (row[0], str(row[1])))
+        print("{} -- {} views".format(row[0], str(row[1])))
     db.close()
     return popularAuthors
 
@@ -67,11 +73,15 @@ def mostErrorsDay():
     '''
     Returns the day with error percentage > 1
     '''
-    db = psycopg2.connect(database=DBNAME)
+    try:
+        db = psycopg2.connect(database=DBNAME)
+    except psycopg2.OperationalError as e:
+        print("unable to connect error: %s " % e)
     cur = db.cursor()
     query_requestsPerDay = """
                             CREATE OR REPLACE VIEW requests_per_day AS
-                            SELECT COUNT(*)::numeric as num, time::date as day
+                            SELECT
+                            COUNT(*)::numeric as num, time::date as day
                             FROM log
                             GROUP BY day
                             ORDER BY day DESC;
@@ -79,7 +89,8 @@ def mostErrorsDay():
     cur.execute(query_requestsPerDay)
     query_errorsPerDay = """
                             CREATE OR REPLACE VIEW errors_per_day AS
-                            SELECT COUNT(*)::numeric as num, time::date as day
+                            SELECT
+                            COUNT(*)::numeric as num, time::date as day
                             FROM log
                             WHERE status !='200 OK'
                             GROUP BY day
@@ -87,7 +98,8 @@ def mostErrorsDay():
                         """
     cur.execute(query_errorsPerDay)
     query_errorPercentage = """
-                                CREATE OR REPLACE VIEW day_with_most_error AS(
+                                CREATE OR REPLACE VIEW day_with_most_error
+                                AS(
                                     SELECT * FROM(
                                     SELECT TO_CHAR
                                     (requests_per_day.day,'Mon DD, YYYY'),
@@ -104,7 +116,7 @@ def mostErrorsDay():
     results = cur.fetchall()
     for row in results:
         errorRoundOff = round(row[1], 1)
-        print("%s --- %s%% errors" % (row[0], errorRoundOff))
+        print("{} -- {} %% errors".format(row[0], errorRoundOff))
     db.close()
     return results
 
